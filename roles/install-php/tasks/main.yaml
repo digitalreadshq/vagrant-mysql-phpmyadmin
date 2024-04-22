@@ -1,0 +1,36 @@
+---
+- name: Install required packages
+  dnf:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - httpd
+    - php
+    - php-mysqli
+
+- name: Download phpMyAdmin zip file
+  get_url:
+    url: https://files.phpmyadmin.net/phpMyAdmin/{{ phpmyadmin_version }}/phpMyAdmin-{{ phpmyadmin_version }}-all-languages.zip
+    dest: /tmp/phpMyAdmin-{{ phpmyadmin_version }}-all-languages.zip
+
+- name: Unzip phpMyAdmin
+  unarchive:
+    src: /tmp/phpMyAdmin-{{ phpmyadmin_version }}-all-languages.zip
+    dest: /var/www/html/
+    remote_src: yes
+
+- name: Move phpMyAdmin directory
+  command:
+    cmd: mv /var/www/html/phpMyAdmin-{{ phpmyadmin_version }}-all-languages /var/www/html/phpMyAdmin
+
+- name: Create phpMyAdmin tmp directory
+  file:
+    path: /var/www/html/phpMyAdmin/tmp/
+    state: directory
+    mode: '0755'
+
+- name: Start Apache (httpd)
+  service:
+    name: httpd
+    state: started
+    enabled: yes

@@ -1,0 +1,40 @@
+---
+- name: Update dnf packages
+  dnf:
+    name: '*'
+    state: latest
+
+- name: Upgrade to release using dnf
+  command: dnf upgrade --releasever={{ releasever }} -y
+
+- name: Download MySQL repository RPM
+  command: wget https://dev.mysql.com/get/{{ mysql_rpm }}
+  args:
+    chdir: /tmp
+
+- name: Install MySQL repository
+  command: dnf install /tmp/{{ mysql_rpm }} -y
+
+- name: Install MySQL server
+  command: dnf install mysql-community-server -y
+
+- name: Start MySQL service
+  systemd:
+    name: mysqld
+    state: started
+
+- name: Get MySQL temporary password
+  command: grep 'temporary password' /var/log/mysqld.log
+  register: mysql_temp_password
+
+- name: Set MySQL temporary password as a fact
+  set_fact:
+    mysql_temp_password: "{{ mysql_temp_password.stdout | regex_search('root@localhost: (.*)', '\\1') }}"
+  when: mysql_temp_password.stdout is defined
+
+- name: Print MySQL temporary password debug message
+  debug:
+    msg: "MySQL temporary password: {{ mysql_temp_password[0] }}"
+
+- name: Update root password
+  shell: "mysql -uroot -p'{{ mysql_temp_password[0] }}' --connect-expired-password -e'ALTER USER \"root\"@\"localhost\" IDENTIFIED BY \"{{ mysql_test_pw }}\"'"

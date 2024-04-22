@@ -1,0 +1,4 @@
+---
+releasever: '2023.4.20240416'
+mysql_rpm: 'mysql80-community-release-el9-5.noarch.rpm'
+mysql_test_pw: 'Test1234!'

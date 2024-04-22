@@ -1,0 +1,41 @@
+---
+- name: Create phpMyAdmin directory
+  file:
+    path: /etc/phpMyAdmin
+    state: directory
+    mode: '0755'
+
+- name: Copy config.inc.php to phpMyAdmin directory
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: '0644'
+  with_items:
+    - { src: 'config.inc.php', dest: '/etc/phpMyAdmin/config.inc.php' }
+    - { src: 'phpMyAdmin.conf', dest: '/etc/httpd/conf.d/phpMyAdmin.conf' }
+
+- name: Add user to apache group
+  shell: usermod -a -G apache {{ os_user }}
+
+- name: Change ownership part1
+  shell: chown -R {{ os_user }}:apache /var/www
+
+- name: Change ownership part2
+  shell: chown apache:apache /var/www/html/phpMyAdmin/tmp
+
+- name: Give write access part1
+  shell: chmod 2775 /var/www && find /var/www -type d -exec sudo chmod 2775 {} \;
+
+- name: Give write access part2
+  shell: find /var/www -type f -exec sudo chmod 0664 {} \;
+
+- name: Create phpMyAdmin database tables
+  shell: "mysql -uroot -p'{{ mysql_test_pw }}' < /var/www/html/phpMyAdmin/sql/create_tables.sql"
+
+- name: Restart Apache (httpd)
+  service:
+    name: httpd
+    state: restarted
+    enabled: yes
